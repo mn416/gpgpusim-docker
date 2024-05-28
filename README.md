@@ -24,7 +24,7 @@ cp /home/dev-user/gpgpu-sim_distribution/configs/tested-cfgs/SM2_GTX480/*
 ./saxpy
 ```
 
-# 12.04 Image
+## 12.04 Image
 
 ```
 make shell-1204   # This will take a while the first time
