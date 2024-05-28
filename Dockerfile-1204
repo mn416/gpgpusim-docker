@@ -1,0 +1,102 @@
+FROM ubuntu:12.04
+ARG UID
+ARG GID
+RUN echo "Group ID: $GID"
+RUN echo "User ID: $UID"
+
+USER root
+RUN sed -i.bak 's/archive.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
+RUN apt-get update -y && apt-get install apt-utils -y
+RUN DEBIAN_FRONTEND="noninteractive" apt-get -y install tzdata
+
+# Install basic packages 
+RUN apt-get upgrade -y 
+RUN apt-get update -y \
+    && apt-get install -y g++ \
+                          gcc cmake sudo wget vim \
+                          curl tmux git bc expect gcc-4.5 g++-4.5
+
+# Install dependencies
+RUN apt-get update -y \
+    && apt-get install -y autoconf automake libtool pkg-config \
+                          clang bison cmake mercurial ninja-build \
+                          samba flex texinfo time libglib2.0-dev \
+                          libpixman-1-dev libarchive-dev \
+                          libbz2-dev libattr1-dev libcap-ng-dev \
+                          libexpat1-dev libgmp-dev \
+                          build-essential xutils-dev bison \
+                          zlib1g-dev flex libglu1-mesa-dev \
+                          libxi-dev libxmu-dev freeglut3-dev
+
+# Append any packages you need here
+# RUN apt-get update -y \
+#     && apt-get install -y ...
+
+CMD ["bash"]
+
+# Add dev-user
+RUN groupadd -o -g $GID dev-user
+RUN useradd -r -g $GID -u $UID -m -d /home/dev-user -s /sbin/nologin -c "User" dev-user
+RUN echo "dev-user     ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+USER dev-user
+
+# Use GCC 4.5
+RUN mkdir /home/dev-user/scripts
+RUN ln -s /usr/bin/gcc-4.5 /home/dev-user/scripts/gcc
+RUN ln -s /usr/bin/g++-4.5 /home/dev-user/scripts/g++
+ENV PATH="/home/dev-user/scripts/:${PATH}"
+
+# Install CUDA
+RUN cd /home/dev-user/ \
+    && wget http://developer.download.nvidia.com/compute/cuda/4_1/rel/toolkit/cudatoolkit_4.1.28_linux_64_ubuntu11.04.run
+RUN mkdir /home/dev-user/tmp
+ENV TEMP="/home/dev-user/tmp"
+RUN mkdir /home/dev-user/cuda-4.1
+RUN echo 'spawn sh /home/dev-user/cudatoolkit_4.1.28_linux_64_ubuntu11.04.run' > /home/dev-user/cuda-install.exp
+RUN echo 'expect ":" { send "/home/dev-user/cuda-4.1\\r" }' >> /home/dev-user/cuda-install.exp
+RUN echo 'expect eof' >> /home/dev-user/cuda-install.exp
+RUN expect /home/dev-user/cuda-install.exp
+RUN rm -f /home/dev-user/cudatoolkit_4.1.28_linux_64_ubuntu11.04.run /home/dev-user/cuda-install.exp /home/dev-user/cuda*.log
+
+# Build GPGPUSim
+RUN cd /home/dev-user \
+    && git clone https://github.com/gpgpu-sim/gpgpu-sim_distribution
+RUN bash -c "cd /home/dev-user/gpgpu-sim_distribution \
+    && git checkout 96d528311239d6ff82d7bec807a2509b344c9a60 \
+    && export CUDA_INSTALL_PATH=/home/dev-user/cuda-4.1/cuda/ \
+    && source setup_environment \
+    && make"
+
+# Add environment variables
+RUN printf "\
+\nexport LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:\$LIBRARY_PATH \
+\n# Basic PATH setup \
+\nexport PATH=/home/dev-user/scripts:/home/dev-user/.local/bin:/home/dev-user/cuda-4.1/cuda/bin:\$PATH \
+\nexport CUDA_INSTALL_PATH=/home/dev-user/cuda-4.1/cuda/ \
+\nsource /home/dev-user/gpgpu-sim_distribution/setup_environment \
+\n# Thread setup \
+\nexport nproc=\$(grep -c ^processor /proc/cpuinfo) \
+\n# Terminal color... \
+\nexport PS1=\"[\\\\\\[\$(tput setaf 3)\\\\\\]\\\t\\\\\\[\$(tput setaf 2)\\\\\\] \\\u\\\\\\[\$(tput sgr0)\\\\\\]@\\\\\\[\$(tput setaf 2)\\\\\\]\\\h \\\\\\[\$(tput setaf 7)\\\\\\]\\\w \\\\\\[\$(tput sgr0)\\\\\\]] \\\\\\[\$(tput setaf 6)\\\\\\]$ \\\\\\[\$(tput sgr0)\\\\\\]\" \
+\nexport LS_COLORS='rs=0:di=01;96:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01' \
+\nalias ls='ls --color' \
+\nalias grep='grep --color'\n" >> /home/dev-user/.bashrc
+
+# Add vim environment
+RUN printf "\
+\nset autoread \
+\nautocmd BufWritePost *.cpp silent! !clang-format -i <afile> \
+\nautocmd BufWritePost *.c   silent! !clang-format -i <afile> \
+\nautocmd BufWritePost *.h   silent! !clang-format -i <afile> \
+\nautocmd BufWritePost *.hpp silent! !clang-format -i <afile> \
+\nautocmd BufWritePost *.cc  silent! !clang-format -i <afile> \
+\nautocmd BufWritePost *.py  silent! set tabstop=4 shiftwidth=4 expandtab \
+\nautocmd BufWritePost *.py  silent! !python3 -m black <afile> \
+\nautocmd BufWritePost *.py  silent! !isort <afile> \
+\nautocmd BufWritePost *.sv  silent! !verible-verilog-format --inplace <afile> \
+\nautocmd BufWritePost *.v  silent! !verible-verilog-format --inplace <afile> \
+\nautocmd BufWritePost * redraw! \
+\n" >> /home/dev-user/.vimrc
+
+# Entrypoint set up
+WORKDIR workspace
