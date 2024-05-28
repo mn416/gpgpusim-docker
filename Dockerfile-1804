@@ -62,6 +62,7 @@ RUN cd /home/dev-user \
     && git clone https://github.com/gpgpu-sim/gpgpu-sim_distribution
 RUN bash -c "cd /home/dev-user/gpgpu-sim_distribution \
     && export CUDA_INSTALL_PATH=/home/dev-user/cuda-9.1/ \
+    && git checkout 90ec3399763d7c8512cfe7dc193473086c38ca38 \
     && source setup_environment \
     && make"
 
