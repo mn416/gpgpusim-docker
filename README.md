@@ -4,8 +4,6 @@ This repository contains two docker images for [GPGPUSim](https://github.com/gpg
 
   * **12.04**: The 12.04 image contains Ubuntu 12.04, CUDA 4.1, and a version of GPGPUSim that works with this combination. This image supports running PTXPlus bytecode, a closer-to-machine-code representation than PTX, which is not supported by recent versions of CUDA and GPGPUSim.
 
-## Usage
-
 The following instructions are known to work on Ubuntu 20.04, assuming docker is installed.
 
 ```
