@@ -20,7 +20,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 make shell   # This will take a while the first time
 cd example
 nvcc --cudart shared saxpy.cu -o saxpy
-cp /home/dev-user/gpgpu-sim_distribution/configs/tested-cfgs/SM2_GTX480/*
+cp /home/dev-user/gpgpu-sim_distribution/configs/tested-cfgs/SM2_GTX480/* .
 ./saxpy
 ```
 
