@@ -26,7 +26,8 @@ RUN apt-get update -y \
                           libexpat1-dev libgmp-dev \
                           build-essential xutils-dev bison \
                           zlib1g-dev flex libglu1-mesa-dev \
-                          libxi-dev libxmu-dev freeglut3-dev
+                          libxi-dev libxmu-dev freeglut3-dev \
+                          libglew-dev
 
 # Append any packages you need here
 # RUN apt-get update -y \
