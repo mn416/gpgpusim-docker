@@ -16,7 +16,7 @@ build-docker-1804:
 	 (docker build -f Dockerfile-1804 --build-arg UID=$(USER) --build-arg GID=$(GROUP) . --tag gpgpusim-ubuntu1804)
 
 # Enter the docker image (Ubuntu 18.04)
-.PHONY: shell-18-04
+.PHONY: shell-1804
 shell-1804: build-docker-1804
 	docker run -it --shm-size 256m --hostname gpgpusim-ubuntu1804 -u $(USER) -v /home/$(shell whoami)/.ssh:/home/dev-user/.ssh  -v $(shell pwd):/workspace gpgpusim-ubuntu1804:latest /bin/bash
 
